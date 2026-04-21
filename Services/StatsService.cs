@@ -1,3 +1,4 @@
+using EveStatsCollector.Diagnostics;
 using EveStatsCollector.Esi;
 using EveStatsCollector.Models;
 using EveStatsCollector.Repositories;
@@ -80,6 +81,7 @@ public sealed class StatsService
             _logger.LogInformation(
                 "Kills report #{Id} stored: {Count} systems, Last-Modified {LastModified:u}",
                 report.Id, report.Entries.Count, report.LastModified);
+            ReportDebugLogger.LogKillsReport(_logger, report, id => _universe.GetSystem(id)?.Name);
         }
         else if (killsResponse.IsNotModified)
         {
@@ -94,6 +96,7 @@ public sealed class StatsService
             _logger.LogInformation(
                 "Jumps report #{Id} stored: {Count} systems, Last-Modified {LastModified:u}",
                 report.Id, report.Entries.Count, report.LastModified);
+            ReportDebugLogger.LogJumpsReport(_logger, report, id => _universe.GetSystem(id)?.Name);
         }
         else if (jumpsResponse.IsNotModified)
         {
