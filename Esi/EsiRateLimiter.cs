@@ -7,8 +7,12 @@ public sealed class EsiRateLimiter
 {
     private readonly ILogger<EsiRateLimiter> _logger;
     private readonly ConcurrentDictionary<string, RateLimitState> _states = new();
+    private readonly ConcurrentDictionary<string, string> _pathGroups = new();
 
     public EsiRateLimiter(ILogger<EsiRateLimiter> logger) => _logger = logger;
+
+    public string GetGroup(string path) => _pathGroups.GetValueOrDefault(path, "default");
+    public void RegisterPath(string path, string group) => _pathGroups[path] = group;
 
     public async Task ThrottleAsync(string group, CancellationToken ct)
     {

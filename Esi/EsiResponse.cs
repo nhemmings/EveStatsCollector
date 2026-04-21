@@ -7,10 +7,7 @@ public record EsiResponse<T>(
     HttpStatusCode StatusCode,
     DateTimeOffset? Expires,
     DateTimeOffset? LastModified,
-    string? ETag,
-    int RateLimitRemaining,
-    int RateLimitUsed,
-    string? RateLimitGroup
+    string? ETag
 )
 {
     public bool IsSuccess => (int)StatusCode is >= 200 and < 300;

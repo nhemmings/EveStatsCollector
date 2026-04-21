@@ -27,16 +27,18 @@ try
         {
             var esiConfig = ctx.Configuration.GetSection("Esi");
 
+            services.AddSingleton<EsiRateLimiter>();
+            services.AddSingleton<EsiErrorTracker>();
+            services.AddTransient<EsiRateLimitHandler>();
+
             services.AddHttpClient("ESI", client =>
             {
                 client.BaseAddress = new Uri(esiConfig["BaseUrl"] ?? "https://esi.evetech.net/latest/");
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("User-Agent",
                     esiConfig["UserAgent"] ?? "EveStatsCollector/1.0");
-            });
+            }).AddHttpMessageHandler<EsiRateLimitHandler>();
 
-            services.AddSingleton<EsiRateLimiter>();
-            services.AddSingleton<EsiErrorTracker>();
             services.AddSingleton<EsiClient>();
 
             services.AddSingleton<ISolarSystemRepository, InMemorySolarSystemRepository>();
@@ -44,6 +46,7 @@ try
             services.AddSingleton<IRegionRepository, InMemoryRegionRepository>();
             services.AddSingleton<IKillsReportRepository, InMemoryKillsReportRepository>();
             services.AddSingleton<IJumpsReportRepository, InMemoryJumpsReportRepository>();
+            services.AddConstellationFilter(ctx.Configuration); // comment out to disable
 
             services.AddSingleton<UniverseService>();
             services.AddSingleton<StatsService>();
