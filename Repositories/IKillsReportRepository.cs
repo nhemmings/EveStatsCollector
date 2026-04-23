@@ -4,8 +4,8 @@ namespace EveStatsCollector.Repositories;
 
 public interface IKillsReportRepository
 {
-    KillsReport Add(DateTimeOffset lastModified, IReadOnlyList<SystemKills> entries);
-    KillsReport? GetById(int id);
-    KillsReport? GetLatest();
-    IReadOnlyList<KillsReport> GetAll();
+    Task<KillsReport> AddAsync(DateTimeOffset lastModified, IReadOnlyList<SystemKills> entries);
+    Task<KillsReport?> GetByIdAsync(int id);
+    Task<KillsReport?> GetLatestAsync();
+    Task<IReadOnlyList<KillsReport>> GetAllAsync();
 }

@@ -9,21 +9,21 @@ public sealed class InMemoryJumpsReportRepository : IJumpsReportRepository
     private int _nextId;
     private volatile int _latestId;
 
-    public JumpsReport Add(DateTimeOffset lastModified, IReadOnlyList<SystemJumps> entries)
+    public Task<JumpsReport> AddAsync(DateTimeOffset lastModified, IReadOnlyList<SystemJumps> entries)
     {
         var id = Interlocked.Increment(ref _nextId);
         var report = new JumpsReport(id, lastModified, DateTimeOffset.UtcNow, entries);
         _reports[id] = report;
         _latestId = id;
-        return report;
+        return Task.FromResult(report);
     }
 
-    public JumpsReport? GetById(int id) =>
-        _reports.TryGetValue(id, out var report) ? report : null;
+    public Task<JumpsReport?> GetByIdAsync(int id) =>
+        Task.FromResult(_reports.TryGetValue(id, out var report) ? report : null);
 
-    public JumpsReport? GetLatest() =>
-        _latestId > 0 ? _reports.GetValueOrDefault(_latestId) : null;
+    public Task<JumpsReport?> GetLatestAsync() =>
+        Task.FromResult(_latestId > 0 ? _reports.GetValueOrDefault(_latestId) : null);
 
-    public IReadOnlyList<JumpsReport> GetAll() =>
-        _reports.Values.OrderBy(r => r.Id).ToList();
+    public Task<IReadOnlyList<JumpsReport>> GetAllAsync() =>
+        Task.FromResult<IReadOnlyList<JumpsReport>>(_reports.Values.OrderBy(r => r.Id).ToList());
 }

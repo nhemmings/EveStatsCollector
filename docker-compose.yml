@@ -3,6 +3,7 @@ services:
     build: .
     environment:
       - Seq__ServerUrl=http://seq
+      - ConnectionStrings__Postgres=Host=postgres;Database=evestatscollector;Username=evestatscollector;Password=changeme
     depends_on:
       - seq
     restart: unless-stopped

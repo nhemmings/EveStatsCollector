@@ -12,6 +12,7 @@ public sealed class StatsService
     private readonly UniverseService _universe;
     private readonly IKillsReportRepository _killsReports;
     private readonly IJumpsReportRepository _jumpsReports;
+    private readonly ConstellationFilter _filter;
     private readonly ILogger<StatsService> _logger;
 
     private string? _killsETag;
@@ -22,12 +23,14 @@ public sealed class StatsService
         UniverseService universe,
         IKillsReportRepository killsReports,
         IJumpsReportRepository jumpsReports,
+        ConstellationFilter filter,
         ILogger<StatsService> logger)
     {
         _client = client;
         _universe = universe;
         _killsReports = killsReports;
         _jumpsReports = jumpsReports;
+        _filter = filter;
         _logger = logger;
     }
 
@@ -77,7 +80,8 @@ public sealed class StatsService
         {
             _killsETag = killsResponse.ETag;
             var lastModified = killsResponse.LastModified ?? killsResponse.Expires ?? DateTimeOffset.UtcNow;
-            var report = _killsReports.Add(lastModified, killsResponse.Data);
+            var entries = killsResponse.Data.Where(e => _filter.AllowSystem(e.SystemId)).ToList();
+            var report = await _killsReports.AddAsync(lastModified, entries);
             _logger.LogInformation(
                 "Kills report #{Id} stored: {Count} systems, Last-Modified {LastModified:u}",
                 report.Id, report.Entries.Count, report.LastModified);
@@ -92,7 +96,8 @@ public sealed class StatsService
         {
             _jumpsETag = jumpsResponse.ETag;
             var lastModified = jumpsResponse.LastModified ?? jumpsResponse.Expires ?? DateTimeOffset.UtcNow;
-            var report = _jumpsReports.Add(lastModified, jumpsResponse.Data);
+            var entries = jumpsResponse.Data.Where(e => _filter.AllowSystem(e.SystemId)).ToList();
+            var report = await _jumpsReports.AddAsync(lastModified, entries);
             _logger.LogInformation(
                 "Jumps report #{Id} stored: {Count} systems, Last-Modified {LastModified:u}",
                 report.Id, report.Entries.Count, report.LastModified);

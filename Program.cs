@@ -1,7 +1,9 @@
 using EveStatsCollector.Esi;
 using EveStatsCollector.Repositories;
 using EveStatsCollector.Repositories.InMemory;
+using EveStatsCollector.Repositories.PostgreSql;
 using EveStatsCollector.Services;
+using Npgsql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,8 +46,20 @@ try
             services.AddSingleton<ISolarSystemRepository, InMemorySolarSystemRepository>();
             services.AddSingleton<IConstellationRepository, InMemoryConstellationRepository>();
             services.AddSingleton<IRegionRepository, InMemoryRegionRepository>();
-            services.AddSingleton<IKillsReportRepository, InMemoryKillsReportRepository>();
-            services.AddSingleton<IJumpsReportRepository, InMemoryJumpsReportRepository>();
+
+            var pgConnStr = ctx.Configuration.GetConnectionString("Postgres");
+            if (!string.IsNullOrEmpty(pgConnStr))
+            {
+                services.AddSingleton(NpgsqlDataSource.Create(pgConnStr));
+                services.AddSingleton<IKillsReportRepository, PostgreSqlKillsReportRepository>();
+                services.AddSingleton<IJumpsReportRepository, PostgreSqlJumpsReportRepository>();
+            }
+            else
+            {
+                services.AddSingleton<IKillsReportRepository, InMemoryKillsReportRepository>();
+                services.AddSingleton<IJumpsReportRepository, InMemoryJumpsReportRepository>();
+            }
+
             services.AddConstellationFilter(ctx.Configuration); // comment out to disable
 
             services.AddSingleton<UniverseService>();

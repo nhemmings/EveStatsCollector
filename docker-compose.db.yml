@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: evestatscollector
+      POSTGRES_USER: evestatscollector
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evestatscollector"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  migrator:
+    build:
+      context: .
+      dockerfile: EveStatsCollector.Migrator/Dockerfile
+    environment:
+      ConnectionStrings__Postgres: "Host=postgres;Database=evestatscollector;Username=evestatscollector;Password=changeme"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres_data:
