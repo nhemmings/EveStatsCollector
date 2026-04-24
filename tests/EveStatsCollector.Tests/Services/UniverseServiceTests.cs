@@ -1,6 +1,7 @@
 using System.Net;
 using EveStatsCollector.Esi;
 using EveStatsCollector.Models;
+using EveStatsCollector.Repositories;
 using EveStatsCollector.Repositories.InMemory;
 using EveStatsCollector.Services;
 using EveStatsCollector.Tests.TestHelpers;
@@ -27,7 +28,7 @@ public class UniverseServiceTests
         var constellations = new InMemoryConstellationRepository();
         var regions = new InMemoryRegionRepository();
         var svc = new UniverseService(esi, systems, constellations, regions,
-            NullLogger<UniverseService>.Instance);
+            new UniverseConstellationFilter([]), NullLogger<UniverseService>.Instance);
         return (svc, handler, systems, constellations, regions);
     }
 

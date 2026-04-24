@@ -1,6 +1,6 @@
 namespace EveStatsCollector.Repositories;
 
-public sealed class ConstellationFilter
+public sealed class ReportConstellationFilter
 {
     private readonly IConstellationRepository _constellations;
     private readonly IReadOnlyList<string> _names;
@@ -8,7 +8,7 @@ public sealed class ConstellationFilter
 
     public bool IsActive => _names.Count > 0;
 
-    public ConstellationFilter(IConstellationRepository constellations, IReadOnlyList<string> names)
+    public ReportConstellationFilter(IConstellationRepository constellations, IReadOnlyList<string> names)
     {
         _constellations = constellations;
         _names = names;

@@ -43,24 +43,36 @@ try
 
             services.AddSingleton<EsiClient>();
 
-            services.AddSingleton<ISolarSystemRepository, InMemorySolarSystemRepository>();
-            services.AddSingleton<IConstellationRepository, InMemoryConstellationRepository>();
-            services.AddSingleton<IRegionRepository, InMemoryRegionRepository>();
-
             var pgConnStr = ctx.Configuration.GetConnectionString("Postgres");
             if (!string.IsNullOrEmpty(pgConnStr))
             {
                 services.AddSingleton(NpgsqlDataSource.Create(pgConnStr));
+
+                services.AddSingleton<PostgreSqlRegionRepository>();
+                services.AddSingleton<IRegionRepository>(sp => sp.GetRequiredService<PostgreSqlRegionRepository>());
+                services.AddSingleton<IAsyncPreloadable>(sp => sp.GetRequiredService<PostgreSqlRegionRepository>());
+
+                services.AddSingleton<PostgreSqlConstellationRepository>();
+                services.AddSingleton<IConstellationRepository>(sp => sp.GetRequiredService<PostgreSqlConstellationRepository>());
+                services.AddSingleton<IAsyncPreloadable>(sp => sp.GetRequiredService<PostgreSqlConstellationRepository>());
+
+                services.AddSingleton<PostgreSqlSolarSystemRepository>();
+                services.AddSingleton<ISolarSystemRepository>(sp => sp.GetRequiredService<PostgreSqlSolarSystemRepository>());
+                services.AddSingleton<IAsyncPreloadable>(sp => sp.GetRequiredService<PostgreSqlSolarSystemRepository>());
+
                 services.AddSingleton<IKillsReportRepository, PostgreSqlKillsReportRepository>();
                 services.AddSingleton<IJumpsReportRepository, PostgreSqlJumpsReportRepository>();
             }
             else
             {
+                services.AddSingleton<IRegionRepository, InMemoryRegionRepository>();
+                services.AddSingleton<IConstellationRepository, InMemoryConstellationRepository>();
+                services.AddSingleton<ISolarSystemRepository, InMemorySolarSystemRepository>();
                 services.AddSingleton<IKillsReportRepository, InMemoryKillsReportRepository>();
                 services.AddSingleton<IJumpsReportRepository, InMemoryJumpsReportRepository>();
             }
 
-            services.AddConstellationFilter(ctx.Configuration); // comment out to disable
+            services.AddConstellationFilters(ctx.Configuration);
 
             services.AddSingleton<UniverseService>();
             services.AddSingleton<StatsService>();
@@ -74,6 +86,9 @@ try
         Log.Information("Shutdown requested");
         cts.Cancel();
     };
+
+    foreach (var preloadable in host.Services.GetServices<IAsyncPreloadable>())
+        await preloadable.LoadAsync(cts.Token);
 
     var universe = host.Services.GetRequiredService<UniverseService>();
     var stats = host.Services.GetRequiredService<StatsService>();

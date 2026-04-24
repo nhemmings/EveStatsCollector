@@ -1,5 +1,7 @@
 using EveStatsCollector.Diagnostics;
 using EveStatsCollector.Models;
+using EveStatsCollector.Repositories;
+using EveStatsCollector.Repositories.InMemory;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 
@@ -41,11 +43,12 @@ public class ReportDebugLoggerTests
         var report = new KillsReport(42, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, entries);
 
         int calls = 0;
+        var filter = new ReportConstellationFilter(new InMemoryConstellationRepository(), Array.Empty<string>());
         ReportDebugLogger.LogKillsReport(logger, report, id =>
         {
             calls++;
             return id == 30000142 ? "Jita" : null; // second entry falls back to id.ToString()
-        });
+        }, filter);
 
         calls.Should().Be(2);
         logger.Entries.Should().HaveCount(1 + entries.Length);
@@ -65,7 +68,8 @@ public class ReportDebugLoggerTests
         };
         var report = new JumpsReport(7, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, entries);
 
-        ReportDebugLogger.LogJumpsReport(logger, report, id => id == 30000142 ? "Jita" : null);
+        var filter = new ReportConstellationFilter(new InMemoryConstellationRepository(), Array.Empty<string>());
+        ReportDebugLogger.LogJumpsReport(logger, report, id => id == 30000142 ? "Jita" : null, filter);
 
         logger.Entries.Should().HaveCount(1 + entries.Length);
         logger.Entries[0].Message.Should().Contain("Jumps report #7");
@@ -80,7 +84,8 @@ public class ReportDebugLoggerTests
         var logger = new RecordingLogger();
         var report = new KillsReport(1, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, Array.Empty<SystemKills>());
 
-        ReportDebugLogger.LogKillsReport(logger, report, _ => null);
+        var filter = new ReportConstellationFilter(new InMemoryConstellationRepository(), Array.Empty<string>());
+        ReportDebugLogger.LogKillsReport(logger, report, _ => null, filter);
 
         logger.Entries.Should().ContainSingle();
     }
@@ -91,7 +96,8 @@ public class ReportDebugLoggerTests
         var logger = new RecordingLogger();
         var report = new JumpsReport(1, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, Array.Empty<SystemJumps>());
 
-        ReportDebugLogger.LogJumpsReport(logger, report, _ => null);
+        var filter = new ReportConstellationFilter(new InMemoryConstellationRepository(), Array.Empty<string>());
+        ReportDebugLogger.LogJumpsReport(logger, report, _ => null, filter);
 
         logger.Entries.Should().ContainSingle();
     }

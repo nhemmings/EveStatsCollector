@@ -12,7 +12,7 @@ public sealed class StatsService
     private readonly UniverseService _universe;
     private readonly IKillsReportRepository _killsReports;
     private readonly IJumpsReportRepository _jumpsReports;
-    private readonly ConstellationFilter _filter;
+    private readonly ReportConstellationFilter _reportFilter;
     private readonly ILogger<StatsService> _logger;
 
     private string? _killsETag;
@@ -23,14 +23,14 @@ public sealed class StatsService
         UniverseService universe,
         IKillsReportRepository killsReports,
         IJumpsReportRepository jumpsReports,
-        ConstellationFilter filter,
+        ReportConstellationFilter reportFilter,
         ILogger<StatsService> logger)
     {
         _client = client;
         _universe = universe;
         _killsReports = killsReports;
         _jumpsReports = jumpsReports;
-        _filter = filter;
+        _reportFilter = reportFilter;
         _logger = logger;
     }
 
@@ -80,12 +80,11 @@ public sealed class StatsService
         {
             _killsETag = killsResponse.ETag;
             var lastModified = killsResponse.LastModified ?? killsResponse.Expires ?? DateTimeOffset.UtcNow;
-            var entries = killsResponse.Data.Where(e => _filter.AllowSystem(e.SystemId)).ToList();
-            var report = await _killsReports.AddAsync(lastModified, entries);
+            var report = await _killsReports.AddAsync(lastModified, killsResponse.Data.ToList());
             _logger.LogInformation(
                 "Kills report #{Id} stored: {Count} systems, Last-Modified {LastModified:u}",
                 report.Id, report.Entries.Count, report.LastModified);
-            ReportDebugLogger.LogKillsReport(_logger, report, id => _universe.GetSystem(id)?.Name);
+            ReportDebugLogger.LogKillsReport(_logger, report, id => _universe.GetSystem(id)?.Name, _reportFilter);
         }
         else if (killsResponse.IsNotModified)
         {
@@ -96,19 +95,21 @@ public sealed class StatsService
         {
             _jumpsETag = jumpsResponse.ETag;
             var lastModified = jumpsResponse.LastModified ?? jumpsResponse.Expires ?? DateTimeOffset.UtcNow;
-            var entries = jumpsResponse.Data.Where(e => _filter.AllowSystem(e.SystemId)).ToList();
-            var report = await _jumpsReports.AddAsync(lastModified, entries);
+            var report = await _jumpsReports.AddAsync(lastModified, jumpsResponse.Data.ToList());
             _logger.LogInformation(
                 "Jumps report #{Id} stored: {Count} systems, Last-Modified {LastModified:u}",
                 report.Id, report.Entries.Count, report.LastModified);
-            ReportDebugLogger.LogJumpsReport(_logger, report, id => _universe.GetSystem(id)?.Name);
+            ReportDebugLogger.LogJumpsReport(_logger, report, id => _universe.GetSystem(id)?.Name, _reportFilter);
         }
         else if (jumpsResponse.IsNotModified)
         {
             _logger.LogDebug("Jumps unchanged (304) — no new report created");
         }
 
-        await CheckForUnknownSystemsAsync(killsResponse.Data, jumpsResponse.Data, ct);
+        // When the universe filter is active most systems in the response are intentionally
+        // absent from the repo; skip the unknown-system check to avoid thousands of ESI calls.
+        if (!_universe.IsFilteredLoadActive)
+            await CheckForUnknownSystemsAsync(killsResponse.Data, jumpsResponse.Data, ct);
 
         return killsResponse.Expires.HasValue && jumpsResponse.Expires.HasValue
             ? killsResponse.Expires < jumpsResponse.Expires ? killsResponse.Expires : jumpsResponse.Expires
